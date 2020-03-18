@@ -139,4 +139,9 @@ public class SpecServiceImpl implements SpecService {
         return example;
     }
 
+
+    @Override
+    public List<Spec> findByCateName(String cateName) {
+        return specMapper.findByCateName(cateName);
+    }
 }

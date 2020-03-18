@@ -104,4 +104,11 @@ public class SpecController {
     }
 
 
+
+    @GetMapping("/cate/{cateName}")
+    public Result findByCateName(@PathVariable("cateName") String cateName){
+        List<Spec> specList = specService.findByCateName(cateName);
+        return new Result(true, StatusCode.OK, "查询成功", specList);
+    }
+
 }
