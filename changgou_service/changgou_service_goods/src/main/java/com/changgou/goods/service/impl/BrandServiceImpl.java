@@ -150,4 +150,9 @@ public class BrandServiceImpl implements BrandService {
         return example;
     }
 
+
+    @Override
+    public List<Brand> findByCateName(String cateName) {
+        return brandMapper.findByCateName(cateName);
+    }
 }

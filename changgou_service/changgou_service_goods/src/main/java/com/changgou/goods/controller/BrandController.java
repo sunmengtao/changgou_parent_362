@@ -104,4 +104,10 @@ public class BrandController {
     }
 
 
+    @GetMapping("/cate/{cateName}")
+    public Result findByCateName(@PathVariable("cateName") String cateName){
+        List<Brand> brandList = brandService.findByCateName(cateName);
+        return new Result(true, StatusCode.OK, "查询成功", brandList);
+    }
+
 }
