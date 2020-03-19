@@ -65,5 +65,6 @@ public interface SpecService {
 
 
 
+    List<Spec> findByCateName(String cateName);
 
 }
