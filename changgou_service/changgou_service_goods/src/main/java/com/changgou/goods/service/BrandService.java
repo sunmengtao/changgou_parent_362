@@ -65,5 +65,11 @@ public interface BrandService {
 
 
 
+    /*
+    * 根据分类名查找品牌列表
+    * @param cateName
+    * @return
+    * */
+    List<Brand> findByCateName(String cateName);
 
 }

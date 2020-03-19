@@ -39,7 +39,8 @@ public class BrandServiceImpl implements BrandService {
      */
     @Override
     public Brand findById(Integer id){
-        logger.info("当前的请求的品牌，品牌ID：{}-{}",id,id);
+        String name = "zhangsan";
+        logger.info("当前的请求的品牌，品牌ID：{}-{}",id,name);
         try {
             int i = 1/0;
         } catch (Exception e) {
@@ -150,4 +151,10 @@ public class BrandServiceImpl implements BrandService {
         return example;
     }
 
+
+    @Override
+    public List<Brand> findByCateName(String cateName) {
+
+        return brandMapper.findByCateName(cateName);
+    }
 }
