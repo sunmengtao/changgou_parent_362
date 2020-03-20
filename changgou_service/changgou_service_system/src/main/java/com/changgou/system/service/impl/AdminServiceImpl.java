@@ -6,6 +6,7 @@ import com.changgou.system.pojo.Admin;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import tk.mybatis.mapper.entity.Example;
 
@@ -44,7 +45,10 @@ public class AdminServiceImpl implements AdminService {
      */
     @Override
     public void add(Admin admin){
-        adminMapper.insert(admin);
+        String textPwd = admin.getPassword();
+        String textEncrypt = BCrypt.hashpw(textPwd, BCrypt.gensalt());
+        admin.setPassword(textEncrypt);
+        adminMapper.insertSelective(admin);
     }
 
 
@@ -54,7 +58,10 @@ public class AdminServiceImpl implements AdminService {
      */
     @Override
     public void update(Admin admin){
-        adminMapper.updateByPrimaryKey(admin);
+        String textPwd = admin.getPassword();
+        String textEncrypt = BCrypt.hashpw(textPwd, BCrypt.gensalt());
+        admin.setPassword(textEncrypt);
+        adminMapper.updateByPrimaryKeySelective(admin);
     }
 
     /**
@@ -135,4 +142,20 @@ public class AdminServiceImpl implements AdminService {
         return example;
     }
 
+    @Override
+    public Boolean login(Admin admin) {
+        //根据用户名从DB查找用户信息
+        Admin cond = new Admin();
+        cond.setLoginName(admin.getLoginName());
+        Admin adminDB = adminMapper.selectOne(cond);
+        //如果用户信息不存在,就false
+        if (adminDB==null){
+            return false;
+        }
+        //获取DB用户的密文密码,跟登陆用户输入的明文密码进行校验,如果成功就返回true
+        String pwdText = admin.getPassword();
+        String pwdEncrpt = adminDB.getPassword();
+        boolean checkpw = BCrypt.checkpw(pwdText, pwdEncrpt);
+        return checkpw;
+    }
 }

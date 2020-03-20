@@ -5,6 +5,7 @@ import com.changgou.entity.StatusCode;
 import com.changgou.system.service.AdminService;
 import com.changgou.system.pojo.Admin;
 import com.github.pagehelper.Page;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -104,4 +105,20 @@ public class AdminController {
     }
 
 
+    @PostMapping("/login")
+    public Result login(@RequestBody Admin admin){
+        if(StringUtils.isEmpty(admin.getLoginName())){
+            return new Result(false,StatusCode.LOGINERROR,"用户名为空!");
+        }
+
+        if(StringUtils.isEmpty(admin.getPassword())){
+            return new Result(false,StatusCode.LOGINERROR,"用户密码为空!");
+        }
+
+        boolean login = adminService.login(admin);
+            if (!login){
+                return new Result(false,StatusCode.LOGINERROR,"用户密码错误!");
+            }
+            return new Result(true,StatusCode.OK,"登录成功");
+    }
 }

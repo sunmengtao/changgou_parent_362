@@ -65,5 +65,8 @@ public interface AdminService {
 
 
 
-
+    /*
+    * 用户登录
+    * */
+    Boolean login(Admin admin);
 }
