@@ -76,4 +76,12 @@ public class JWTTest {
         System.out.println("address："+ body.get("address"));
         System.out.println("解析签名：" + parse.getSignature());
     }
+    
+    
+    @Test
+    public void test(){
+        long time = System.currentTimeMillis();
+        int length = Long.toBinaryString(time).length();
+        System.out.println(length);
+    }
 }
