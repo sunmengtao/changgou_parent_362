@@ -1,14 +1,18 @@
 package com.changgou.goods.service.impl;
 
-import com.changgou.goods.dao.SpuMapper;
+import com.alibaba.fastjson.JSON;
+import com.changgou.goods.dao.*;
+import com.changgou.goods.pojo.*;
 import com.changgou.goods.service.SpuService;
-import com.changgou.goods.pojo.Spu;
+import com.changgou.util.IdWorker;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tk.mybatis.mapper.entity.Example;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +21,20 @@ public class SpuServiceImpl implements SpuService {
 
     @Autowired
     private SpuMapper spuMapper;
+    @Autowired
+    private IdWorker idWorker;
 
+    @Autowired
+    private CategoryMapper categoryMapper;
+
+    @Autowired
+    private BrandMapper brandMapper;
+
+    @Autowired
+    private CategoryBrandMapper categoryBrandMapper;
+
+    @Autowired
+    private SkuMapper skuMapper;
     /**
      * 查询全部列表
      * @return
@@ -207,4 +224,86 @@ public class SpuServiceImpl implements SpuService {
         return example;
     }
 
+    @Override
+    public void addGoods(Goods goods) {
+        goods.getSpu().setId(String.valueOf(idWorker.nextId()));
+        spuMapper.insertSelective(goods.getSpu());
+
+        saveGoods(goods);
+    }
+
+    private void saveGoods(Goods goods) {
+        Spu spu = goods.getSpu();
+        Integer category3Id = spu.getCategory3Id();
+        Category category = categoryMapper.selectByPrimaryKey(category3Id);
+        Brand brand = brandMapper.selectByPrimaryKey(spu.getBrandId());
+
+
+        if (brand!=null && category!=null){
+            CategoryBrand categoryBrand = new CategoryBrand();
+            categoryBrand.setBrandId(brand.getId());
+            categoryBrand.setCategoryId(category3Id);
+            int count = categoryBrandMapper.selectCount(categoryBrand);
+
+            if (count==0){
+                categoryBrandMapper.insertSelective(categoryBrand);
+            }
+
+        }
+
+
+        List<Sku> skuList = goods.getSkuList();
+        for (Sku sku : skuList) {
+            sku.setId(String.valueOf(idWorker.nextId()));
+            if (StringUtils.isEmpty(sku.getSpec())){
+                sku.setSpec("{}");
+            }
+            String name = spu.getName();
+            Map<String, String> specMap = JSON.parseObject(sku.getSpec(), Map.class);
+            if (specMap.size()>0){
+                for (String key : specMap.keySet()){
+                    String specVal = specMap.get(key);
+                    name += "" +specVal;
+                }
+            }
+            sku.setName("");
+            sku.setCreateTime(new Date());
+            sku.setUpdateTime(new Date());
+            sku.setSpuId(spu.getId());
+            if (category!=null){
+                sku.setCategoryId(category3Id);
+                sku.setCategoryName(category.getName());
+            }
+
+            if (brand!=null){
+                sku.setBrandName(brand.getName());
+            }
+            skuMapper.insertSelective(sku);
+        }
+    }
+
+    @Override
+    public Goods findBySpuId(String spuId) {
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+        Sku skuCond = new Sku();
+        skuCond.setSpuId(spuId);
+        List<Sku> skuList = skuMapper.select(skuCond);
+
+        Goods goods = new Goods();
+        goods.setSpu(spu);
+        goods.setSkuList(skuList);
+
+        return goods;
+    }
+
+    @Override
+    public void updateGoods(Goods goods) {
+        spuMapper.updateByPrimaryKeySelective(goods.getSpu());
+
+        Sku skuCond = new Sku();
+        skuCond.setSpuId(goods.getSpu().getId());
+        skuMapper.delete(skuCond);
+
+        saveGoods(goods);
+    }
 }

@@ -1,5 +1,6 @@
 package com.changgou.goods.service;
 
+import com.changgou.goods.pojo.Goods;
 import com.changgou.goods.pojo.Spu;
 import com.github.pagehelper.Page;
 
@@ -64,6 +65,11 @@ public interface SpuService {
     Page<Spu> findPage(Map<String, Object> searchMap, int page, int size);
 
 
+    void addGoods(Goods goods);
 
+
+    Goods findBySpuId(String id);
+
+    void updateGoods(Goods goods);
 
 }

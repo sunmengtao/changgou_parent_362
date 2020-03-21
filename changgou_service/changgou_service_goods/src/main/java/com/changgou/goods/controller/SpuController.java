@@ -2,6 +2,7 @@ package com.changgou.goods.controller;
 import com.changgou.entity.PageResult;
 import com.changgou.entity.Result;
 import com.changgou.entity.StatusCode;
+import com.changgou.goods.pojo.Goods;
 import com.changgou.goods.service.SpuService;
 import com.changgou.goods.pojo.Spu;
 import com.github.pagehelper.Page;
@@ -104,4 +105,21 @@ public class SpuController {
     }
 
 
+    @PostMapping("/addGoods")
+    public Result addGoods(@RequestBody Goods goods){
+        spuService.addGoods(goods);
+        return new Result(true,StatusCode.OK,"新增商品成功");
+    }
+
+    @GetMapping("/findBySpuId/{spuId}")
+    public Result findBySpuId(@PathVariable("spuId") String spuId){
+        Goods goods = spuService.findBySpuId(spuId);
+        return new Result(true,StatusCode.OK,"根据ID查询商品成功",goods);
+    }
+
+    @PostMapping("/updateGoods")
+    public Result updateGoods(@RequestBody Goods goods){
+        spuService.updateGoods(goods);
+        return new Result(true,StatusCode.OK,"更新商品成功");
+    }
 }
