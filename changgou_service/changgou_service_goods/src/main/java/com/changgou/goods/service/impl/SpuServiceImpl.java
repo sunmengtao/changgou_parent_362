@@ -322,4 +322,146 @@ public class SpuServiceImpl implements SpuService {
         //将所有的sku数据新增
         saveGoods(goods);
     }
+
+
+    @Override
+    public void auditGoods(String spuId) {
+        //查询spu商品
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+        if(spu==null){
+            throw new RuntimeException("数据不存在！");
+        }
+        //如何审核状态不是为审核的，抛出异常
+        if(!"0".equals(spu.getStatus())){
+            throw new RuntimeException("商品状态必须是未审核的！");
+        }
+
+        //设置商品状态为审核通过
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setStatus("1");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+
+    }
+
+
+    @Override
+    public void upGoods(String spuId) {
+        //1.查询spu商品
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        //2.前置条件判断
+        if(spu==null){
+            throw new RuntimeException("数据不存在！");
+        }
+        //商品的状态必须是审核通过的，才可以点击上架
+        if(!"1".equals(spu.getStatus())){
+            throw new RuntimeException("审核通过的商品才能上架！");
+        }
+        //商品如果已经上架了或者是其他的非未上架状态，那么都不允许上架
+        if(!"0".equals(spu.getIsMarketable())){
+            throw new RuntimeException("未上架的商品才能上架！");
+        }
+
+        //3.设置状态为已上架
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsMarketable("1");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+    @Override
+    public void downGoods(String spuId) {
+        //1.根据spuId查询spu
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        //2.前置条件判断
+        if(spu==null){
+            throw new RuntimeException("数据不存在！");
+        }
+        //如果商品的状态不是已上架的，则抛异常
+        if(!"1".equals(spu.getIsMarketable())){
+            throw new RuntimeException("只有已上架的商品才能下架！");
+        }
+
+        //3.设置状态为已下架
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsMarketable("0");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+
+    @Override
+    public void deleteGoodsLogic(String spuId) {
+        //查询spu
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        //前置条件判断
+        if(spu==null){
+            throw new RuntimeException("数据为空");
+        }
+        //如果商品的状态不是下架的状态，那么抛异常
+        if(!"0".equals(spu.getIsMarketable())){
+            throw  new RuntimeException("已下架的商品才能删除");
+        }
+
+        //如果商品的状态不是未删除的状态，那么抛异常
+        if(!"0".equals(spu.getIsDelete())){
+            throw  new RuntimeException("只有未删除的商品才能删除");
+        }
+
+        //设置删除状态为已删除
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsDelete("1");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+
+    @Override
+    public void restoreGoods(String spuId) {
+        //查询spu
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        //前置条件判断
+        if(spu==null){
+            throw new RuntimeException("数据为空");
+        }
+
+        //如果商品的状态不是未已删除的状态，那么抛异常
+        if(!"1".equals(spu.getIsDelete())){
+            throw  new RuntimeException("只有已经逻辑删除的商品才能恢复");
+        }
+
+        //设置删除状态为已删除
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsDelete("0");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+
+    @Transactional
+    @Override
+    public void deleteGoods(String spuId) {
+        //查询spu
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+        //前置条件判断
+        if(spu==null){
+            throw new RuntimeException("数据为空");
+        }
+        //如果商品的状态不是下架的状态，那么抛异常
+        if(!"0".equals(spu.getIsMarketable())){
+            throw  new RuntimeException("已下架的商品才能删除");
+        }
+
+        //删除spu
+        spuMapper.deleteByPrimaryKey(spuId);
+
+        //删除sku
+        Sku sku = new Sku();
+        sku.setSpuId(spuId);
+        skuMapper.delete(sku);
+    }
 }

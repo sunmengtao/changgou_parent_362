@@ -84,4 +84,46 @@ public interface SpuService {
      * @param goods
      */
     void updateGoods(Goods goods);
+
+
+    /**
+     * 根据主键ID审核商品
+     * @param spuId
+     */
+    void auditGoods(String spuId);
+
+
+    /**
+     * 根据主键ID商品商品
+     * @param spuId
+     */
+    void upGoods(String spuId);
+
+
+    /**
+     * 根据主键ID商品商品
+     * @param spuId
+     */
+    void downGoods(String spuId);
+
+
+    /**
+     * 根据主键ID逻辑删除商品
+     * @param spuId
+     */
+    void deleteGoodsLogic(String spuId);
+
+
+    /**
+     * 根据主键ID恢复商品
+     * @param spuId
+     */
+    void restoreGoods(String spuId);
+
+
+    /**
+     * 物理删除商品
+     * @param spuId
+     */
+    void deleteGoods(String spuId);
 }
