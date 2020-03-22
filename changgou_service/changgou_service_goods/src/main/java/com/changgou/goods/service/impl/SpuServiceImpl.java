@@ -322,4 +322,110 @@ public class SpuServiceImpl implements SpuService {
         //将所有的sku数据新增
         saveGoods(goods);
     }
+
+    @Override
+    public void auditGoods(String spuId) {
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+        if (spu==null){
+            throw new RuntimeException("数据不存在");
+        }
+
+        if (!"0".equals(spu.getStatus())){
+            throw new RuntimeException("商品状态必须是未审核的!");
+        }
+
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spu.setStatus("1");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+    public void upGoods(String spuId){
+
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        if (spu==null){
+            throw new RuntimeException("数据不存在!");
+        }
+
+        if (!"1".equals(spu.getStatus())){
+            throw new RuntimeException("审核通过的商品才能上架!");
+        }
+
+        if (!"0".equals(spu.getIsMarketable())){
+            throw new RuntimeException("未上架的商品才能上架");
+        }
+
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsMarketable("1");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+    @Override
+    public void downGoods(String spuId) {
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        if (spu==null){
+            throw new RuntimeException("数据不存在!");
+        }
+
+        if ("1".equals(spu)){
+            throw new RuntimeException("商品必须是上架商品");
+        }
+
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsMarketable("0");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+    @Override
+    public void deleteGoodsLogic(String spuId) {
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        if (spu==null){
+            throw new RuntimeException("数据不存在!");
+        }
+
+        if (!"0".equals(spu.getIsMarketable())){
+            throw new RuntimeException("已下架的商品才能删除");
+        }
+
+        if (!"0".equals(spu.getIsDelete())){
+            throw new RuntimeException("未删除的商品才能删除");
+        }
+
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsDelete("1");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+    @Override
+    public void restoreGoods(String spuId) {
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        if (spu==null){
+            throw new RuntimeException("数据不存在!");
+        }
+
+        if (!"0".equals(spu.getIsDelete())){
+            throw new RuntimeException("只有已经逻辑删除的才可以恢复");
+        }
+
+        Spu spuUpdate = new Spu();
+        spuUpdate.setId(spuId);
+        spuUpdate.setIsDelete("1");
+        spuMapper.updateByPrimaryKeySelective(spuUpdate);
+    }
+
+    @Override
+    public void deleteGoods(String spuId) {
+        Spu spu = spuMapper.selectByPrimaryKey(spuId);
+
+        Sku sku = new Sku();
+        sku.setSpuId(spuId);
+        skuMapper.delete(sku);
+    }
 }

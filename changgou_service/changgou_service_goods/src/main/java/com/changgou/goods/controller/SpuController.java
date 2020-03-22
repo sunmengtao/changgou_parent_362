@@ -125,4 +125,40 @@ public class SpuController {
         spuService.updateGoods(goods);
         return new Result(true, StatusCode.OK, "更新商品成功");
     }
+
+    @PostMapping("/auditGoods/{spuId}")
+    public Result auditGoods(@PathVariable("spuId") String spuId){
+        spuService.auditGoods(spuId);
+        return new Result(true,StatusCode.OK,"商品审核通过!");
+    }
+
+    @PostMapping("/upGoods/{spuId}")
+    public Result upGoods(@PathVariable("spuId") String spuId){
+        spuService.upGoods(spuId);
+        return new Result(true,StatusCode.OK,"商品上架成功!");
+    }
+
+    @PostMapping("/downGoods/{spuId}")
+    public Result downGoods(@PathVariable("spuId") String spuId){
+        spuService.downGoods(spuId);
+        return new Result(true,StatusCode.OK,"商品下架成功!");
+    }
+
+    @PostMapping("/deleteGoodsLogic/{spuId}")
+    public Result deleteGoodsLogic(@PathVariable("spuId") String spuId){
+        spuService.deleteGoodsLogic(spuId);
+        return new Result(true,StatusCode.OK,"商品删除成功!");
+    }
+
+    @PostMapping("/restoreGoods/{spuId}")
+    public Result restoreGoods(@PathVariable("spuId") String spuId){
+        spuService.restoreGoods(spuId);
+        return new Result(true,StatusCode.OK,"商品恢复成功!");
+    }
+
+    @PostMapping("/deleteGoods/{spuId}")
+    public Result deleteGoods(@PathVariable("spuId") String spuId){
+        spuService.deleteGoods(spuId);
+        return new Result(true,StatusCode.OK,"物理删除成功!");
+    }
 }
