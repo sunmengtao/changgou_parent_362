@@ -8,6 +8,7 @@ import com.changgou.util.IdWorker;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,9 @@ public class SpuServiceImpl implements SpuService {
 
     @Autowired
     private SkuMapper skuMapper;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     /**
      * 查询全部列表
@@ -368,6 +372,8 @@ public class SpuServiceImpl implements SpuService {
         spuUpdate.setId(spuId);
         spuUpdate.setIsMarketable("1");
         spuMapper.updateByPrimaryKeySelective(spuUpdate);
+
+        rabbitTemplate.convertAndSend("goods_up_exchange","",spuId);
     }
 
     @Override

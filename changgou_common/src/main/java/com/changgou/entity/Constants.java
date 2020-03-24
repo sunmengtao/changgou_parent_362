@@ -16,4 +16,7 @@ public class Constants {
     public static final String SECKILL_GOODS_STOCK_COUNT_KEY="seckill_goods_stock_count_";
     //秒杀用户key
     public static final String SECKILL_USER_KEY = "seckill_user_";
+
+    //商品上架
+    public static final String GOODS_UP_EXCHANGE = "goods_up_exchange";
 }

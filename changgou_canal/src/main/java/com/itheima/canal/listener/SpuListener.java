@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * @author ZJ
  */
-@CanalEventListener
+//@CanalEventListener
 public class SpuListener {
 
     @Autowired
