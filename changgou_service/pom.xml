@@ -21,6 +21,7 @@
         <module>changgou_service_seckill</module>
         <module>changgou_service_consume</module>
         <module>changgou_service_file</module>
+        <module>changgou_service_search</module>
     </modules>
 
 
