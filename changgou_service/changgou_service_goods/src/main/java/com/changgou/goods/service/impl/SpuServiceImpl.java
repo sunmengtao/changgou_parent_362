@@ -398,6 +398,9 @@ public class SpuServiceImpl implements SpuService {
         spuUpdate.setId(spuId);
         spuUpdate.setIsMarketable("0");
         spuMapper.updateByPrimaryKeySelective(spuUpdate);
+
+        rabbitTemplate.convertAndSend(Constants.GOODS_DOWN_EXCHANGE,"",spuId);
+
     }
 
 

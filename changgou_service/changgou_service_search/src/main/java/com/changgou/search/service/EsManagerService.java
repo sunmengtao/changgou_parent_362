@@ -10,4 +10,8 @@ public interface EsManagerService {
     void createIndexAndMapping();
 
     void importBySpuId(String spuId);
+
+    void importAll();
+
+    void deleteBySpuId(String spuId);
 }
