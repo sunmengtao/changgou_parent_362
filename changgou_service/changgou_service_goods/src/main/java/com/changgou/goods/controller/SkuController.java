@@ -25,9 +25,9 @@ public class SkuController {
      * @return
      */
     @GetMapping
-    public Result findAll(){
+    public List<Sku> findAll(){
         List<Sku> skuList = skuService.findAll();
-        return new Result(true, StatusCode.OK,"查询成功",skuList) ;
+        return skuList;
     }
 
     /***

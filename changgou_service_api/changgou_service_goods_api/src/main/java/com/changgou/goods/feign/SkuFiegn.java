@@ -18,4 +18,7 @@ public interface SkuFiegn {
 
     @GetMapping("/findBySpuId/{spuId}")
     public List<Sku> findBySpuId(@PathVariable("spuId") String spuId);
+
+    @GetMapping
+    public List<Sku> findAll();
 }

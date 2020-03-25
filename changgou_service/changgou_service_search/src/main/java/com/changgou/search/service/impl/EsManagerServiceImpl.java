@@ -62,4 +62,39 @@ public class EsManagerServiceImpl implements EsManagerService {
         //将sku列表数据导入到ES中
         searchMapper.saveAll(skuInfoList);
     }
+
+
+    @Override
+    public void importAll() {
+        //1.查询所有的sku列表数据
+        List<Sku> skuList = skuFiegn.findAll();
+
+        //2.sku类型转换为skuinfo类型
+        String skuListJson = JSON.toJSONString(skuList);
+        List<SkuInfo> skuInfoList = JSON.parseArray(skuListJson, SkuInfo.class);
+
+        //3.处理specMap属性
+        for (SkuInfo skuInfo : skuInfoList) {
+           String specJson = skuInfo.getSpec();
+            Map specMap = JSON.parseObject(specJson, Map.class);
+            skuInfo.setSpecMap(specMap);
+        }
+
+        //4.保存所有数据到ES中
+        searchMapper.saveAll(skuInfoList);
+
+    }
+
+
+    @Override
+    public void deleteBySpuId(String spuId) {
+        //根据spuId查找sku的列表数据
+        List<Sku> skuList = skuFiegn.findBySpuId(spuId);
+        if(skuList==null || skuList.size()==0){
+            throw new RuntimeException("数据不存在");
+        }
+        for (Sku sku : skuList) {
+            searchMapper.deleteById(Long.valueOf(sku.getId()));
+        }
+    }
 }

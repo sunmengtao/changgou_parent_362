@@ -21,4 +21,10 @@ public class Constants {
      * 商品上架交换器
      */
     public static final String GOODS_UP_EXCHANGE = "goods_up_exchange";
+
+
+    /**
+     * 商品下架交换器
+     */
+    public static final String GOODS_DOWN_EXCHANGE = "goods_down_exchange";
 }

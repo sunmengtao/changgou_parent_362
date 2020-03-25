@@ -398,6 +398,9 @@ public class SpuServiceImpl implements SpuService {
         spuUpdate.setId(spuId);
         spuUpdate.setIsMarketable("0");
         spuMapper.updateByPrimaryKeySelective(spuUpdate);
+
+        //4.将spuId存入MQ中，MQ的消费者负责根据spuId将数据从ES中删除
+        rabbitTemplate.convertAndSend(Constants.GOODS_DOWN_EXCHANGE, "", spuId);
     }
 
 

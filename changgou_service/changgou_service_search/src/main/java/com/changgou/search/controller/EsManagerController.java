@@ -33,4 +33,18 @@ public class EsManagerController {
         esManagerService.importBySpuId(spuId);
         return new Result(true, StatusCode.OK, "根据SPUID导入数据到ES成功");
     }
+
+
+    @PostMapping("/importAll")
+    public Result importAll(){
+        esManagerService.importAll();
+        return new Result(true,  StatusCode.OK, "导入全部商品数据到ES成功");
+    }
+
+
+    @PostMapping("/deleteBySpuId/{spuId}")
+    public Result deleteBySpuId(@PathVariable("spuId")String spuId){
+        esManagerService.deleteBySpuId(spuId);
+        return new Result(true,  StatusCode.OK,  "根据spuId从ES删除SKU数据成功");
+    }
 }
