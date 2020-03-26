@@ -55,6 +55,24 @@ public class EsSearchServiceImpl implements EsSearchService {
             boolQueryBuilder.filter(QueryBuilders.termQuery("brandName", searchMap.get("brand")));
         }
 
+        //需求6：根据分类名称进行精确搜索，类似于mysql的select * from tb_sku where category_name = '老花镜'
+        if(StringUtils.isNotEmpty(searchMap.get("categoryName"))){
+            boolQueryBuilder.filter(QueryBuilders.termQuery("categoryName", searchMap.get("categoryName")));
+        }
+
+        //需求7：根据规格进行精确搜索，类似于mysql的select * from tb_sku where spec_color='红色'
+        for(String key : searchMap.keySet()){
+            if(key.startsWith("spec_")){ //key的格式类似于：spec_内存、spc_颜色
+                String[] s = key.split("_");
+                if(s.length==2){
+                    String specName = s[1]; // 这里取出的结果应该是 内存、颜色 这样的规格名
+                    String fieldName = "specMap." + specName + ".keyword";
+                    String specVal = searchMap.get(key);
+                    boolQueryBuilder.filter(QueryBuilders.termQuery(fieldName, specVal));
+                }
+            }
+        }
+
         //构建顶级搜索条件对象
         NativeSearchQueryBuilder nativeSearchQueryBuilder = new NativeSearchQueryBuilder();
         //添加布尔查询对象
