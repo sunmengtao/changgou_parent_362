@@ -5,6 +5,7 @@ import com.changgou.search.SkuInfo;
 import com.changgou.search.service.EsSearchService;
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -13,6 +14,7 @@ import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -160,8 +162,17 @@ public class EsSearchServiceImpl implements EsSearchService {
                         String skuInfoJson = hit.getSourceAsString(); //搜索命中的每一条记录的JSON字符串
                         SkuInfo skuInfo = JSON.parseObject(skuInfoJson, SkuInfo.class);
                         //需求11.2：取出高亮名称，设置到sku对象中
-                        String highlightName = hit.getHighlightFields().get("name").getFragments()[0].toString();
-                        skuInfo.setName(highlightName);
+                        HighlightField field = hit.getHighlightFields().get("name");
+
+                        //有高亮字段的时候才处理高亮的名称
+                        if(field!=null){
+                            Text[] fragments = field.getFragments();
+                            if(fragments!=null){
+                                String highlightName = fragments[0].toString();
+                                skuInfo.setName(highlightName);
+                            }
+                        }
+
                         skuList.add((T)skuInfo);
                     }
                 }
