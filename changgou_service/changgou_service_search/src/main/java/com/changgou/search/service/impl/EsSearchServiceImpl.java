@@ -6,6 +6,7 @@ import com.changgou.search.SkuInfo;
 import com.changgou.search.service.EsSearchService;
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -13,7 +14,13 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
+import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.SearchResultMapper;
@@ -91,6 +98,46 @@ public class EsSearchServiceImpl implements EsSearchService {
             }
         }
 
+        //需求8: 根据价格区间进行范围搜索,类似于mysql的select * from tb_sku where price between 1000 and 3000
+        if (StringUtils.isNotEmpty(searchMap.get("price"))){
+            String price = searchMap.get("price");
+            String[] split = price.split("_");
+            if (split.length==2){
+                String lowPrice = split[0];
+                String highPrice = split[1];
+                boolQueryBuilder.filter(QueryBuilders.rangeQuery(price).gte(lowPrice).lte(highPrice));
+            }
+        }
+
+        //需求9: 根据价格等进行排序,类似于mysql的select * from tb_sku order by price desc
+        if (StringUtils.isNotEmpty(searchMap.get("sortField")) && StringUtils.isNotEmpty(searchMap.get("sortRule"))){
+            String sortField = searchMap.get("sortField");
+            String sortRule = searchMap.get("sortRule");
+            if ("DESC".equalsIgnoreCase(sortRule)){
+                nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort(sortField).order(SortOrder.DESC));
+            }else {
+                nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort(sortField).order(SortOrder.ASC));
+            }
+        }
+
+        //需求10: 分页设置,类似于mysql的select * from tb_sku limit 10,20
+        int pageNum = 1;
+        int pageSize = 20;
+        if (StringUtils.isNotEmpty(searchMap.get("pageNum"))){
+            pageNum = Integer.valueOf(searchMap.get("pageSize"));
+        }
+        if (StringUtils.isNotEmpty(searchMap.get("pageSize"))){
+            pageSize = Integer.valueOf(searchMap.get("pageSize"));
+        }
+        nativeSearchQueryBuilder.withPageable(PageRequest.of(pageNum-1,pageSize));
+
+
+        //需求11: 高亮设置
+        //需求11:设置高亮HTML标签
+        HighlightBuilder.Field hightlightField = new HighlightBuilder.Field("name").preTags("<span style='color:red'>").postTags("</span>");
+        nativeSearchQueryBuilder.withHighlightFields(hightlightField);
+
+
 
         //执行搜索
         AggregatedPage<SkuInfo> search = elasticsearchTemplate.queryForPage(nativeSearchQueryBuilder.build(), SkuInfo.class, new SearchResultMapper() {
@@ -103,6 +150,15 @@ public class EsSearchServiceImpl implements EsSearchService {
                     for (SearchHit hit : hits) {
                         String skuInfoJson = hit.getSourceAsString();//搜索命中的每一条记录的JSON字符串
                         SkuInfo skuInfo = JSON.parseObject(skuInfoJson, SkuInfo.class);
+                        //需求11.2: 取出高亮名称,设置到sku对象中
+                        HighlightField field = hit.getHighlightFields().get("name");
+                        if (field!=null){
+                            Text[] fragments = field.getFragments();
+                            if (fragments!=null){
+                                String highlightName = fragments[0].toString();
+                                skuInfo.setName(highlightName);
+                            }
+                        }
                         skuList.add((T)skuInfo);
                     }
                 }
