@@ -74,6 +74,7 @@ public class EsSearchServiceImpl implements EsSearchService {
                     String specName = s[1]; // 这里取出的结果应该是 内存、颜色 这样的规格名
                     String fieldName = "specMap." + specName + ".keyword";
                     String specVal = searchMap.get(key);
+                    specVal.replace("%2B",  "+");
                     boolQueryBuilder.filter(QueryBuilders.termQuery(fieldName, specVal));
                 }
             }
@@ -246,6 +247,8 @@ public class EsSearchServiceImpl implements EsSearchService {
         searchResult.put("brandList", brandList);//品牌聚合结果集合，转换为JSON后格式如 ['小米','华为','苹果']
         searchResult.put("cateList", cateList); //分类名称聚合结果集合，转换为JSON格式如['手机','电脑','办公桌']
         searchResult.put("specList", specMap); //规格聚合结果集合，转换为JSON格式如{ '颜色':['蓝色','红色'], '版本':['4GB+32GB', '4GB+64GB']}
+        searchResult.put("pageNum", pageNum);//分页码
+        searchResult.put("pageSize", pageSize);//每页显示条数
         return searchResult;
     }
 }
