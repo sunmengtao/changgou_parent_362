@@ -8,16 +8,17 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/page")
 public class PageController {
 
-
     @Autowired
     private PageService pageService;
 
     @PostMapping("/createPageHtml/{spuId}")
+    @ResponseBody
     public Result createPageHtml(@PathVariable("spuId") String spuId){
         pageService.createPageHtml(spuId);
         return new Result(true, StatusCode.OK, "生成成功");

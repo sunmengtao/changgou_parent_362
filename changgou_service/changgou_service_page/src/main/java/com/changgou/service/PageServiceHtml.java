@@ -13,9 +13,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,23 +83,29 @@ public class PageServiceHtml implements PageService {
         Map pageData = buildPageData(spuId);
 
         Context context = new Context();
-        context.setVariables(pageData);//给静态模板页设置所需全部数据
+        context.setVariables(pageData);
 
-        File dir = new File(pagepath);
-        if(!dir.exists()){
-            dir.mkdirs();// 相当于linux的 mkdir -p  /data/aaa/bb/ccc
+        File file = new File(pagepath);
+        if(!file.exists()){
+            file.mkdirs();
         }
 
-        PrintWriter pw = null;
+        Writer writer = null;
         try {
-            pw = new PrintWriter(new File(pagepath + "\\" +spuId+ ".html"));
-            //执行生成静态页面
-            templateEngine.process("item", context, pw);
-        } catch (FileNotFoundException e) {
+            writer = new PrintWriter(file + "/" + spuId + ".html");
+
+            //处理 开始生成静态化页面
+            templateEngine.process("item",context,writer);
+
+        } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if(pw!=null){
-                pw.close();
+        }finally {
+            if(null != writer){
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
