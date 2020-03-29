@@ -24,4 +24,11 @@ public class PageController {
         return new Result(true, StatusCode.OK, "生成成功");
     }
 
+    @PostMapping("/deletePageHtml/{spuId}")
+    @ResponseBody
+    public Result deletePageHtml(@PathVariable("spuId") String spuId){
+        pageService.deletePageHtml(spuId);
+        return new Result(true,StatusCode.OK,"删除成功");
+    }
+
 }

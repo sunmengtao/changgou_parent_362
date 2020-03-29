@@ -109,4 +109,14 @@ public class PageServiceHtml implements PageService {
             }
         }
     }
+
+    @Override
+    public void deletePageHtml(String spuId) {
+        String filePath = pagepath + "/" + spuId + ".html";
+        File file = new File(filePath);
+        if (!file.exists()){
+            throw new RuntimeException("文件不存在!");
+        }
+        file.delete();
+    }
 }

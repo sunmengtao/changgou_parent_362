@@ -16,4 +16,6 @@ public interface PageService {
      * @param spuId
      */
     void createPageHtml(String spuId);
+
+    void deletePageHtml(String spuId);
 }
