@@ -16,4 +16,11 @@ public interface PageService {
      * @param spuId
      */
     void createPageHtml(String spuId);
+
+
+    /**
+     * 根据SPUID删除商品详情静态页面
+     * @param spuId
+     */
+    void deletePageHtml(String spuId);
 }
