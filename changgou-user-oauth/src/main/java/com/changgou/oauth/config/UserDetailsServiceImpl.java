@@ -1,6 +1,7 @@
 package com.changgou.oauth.config;
 
 import com.changgou.oauth.util.UserJwt;
+import com.changgou.user.feign.UserFeign;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -9,7 +10,6 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Service;
@@ -24,6 +24,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired
     private ClientDetailsService clientDetailsService;
+
+    @Autowired
+    private UserFeign userFeign;
 
     /****
      * 自定义授权认证
@@ -53,12 +56,17 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             return null;
         }
 
+        com.changgou.user.pojo.User user = userFeign.findByUsername(username);
+        if(user==null){
+            throw  new RuntimeException("用户不存在！");
+        }
+
         //根据用户名查询用户信息
-        String pwd = new BCryptPasswordEncoder().encode("itheima");
+        //String pwd = new BCryptPasswordEncoder().encode("itheima");
         //创建权限字符串
         String permissions = "goods_list,seckill_list";
         //创建用户JWT对象
-        UserJwt userDetails = new UserJwt(username, pwd, AuthorityUtils.commaSeparatedStringToAuthorityList(permissions));
+        UserJwt userDetails = new UserJwt(username, user.getPassword(), AuthorityUtils.commaSeparatedStringToAuthorityList(permissions));
         //返回用户JWT对象
         return userDetails;
     }

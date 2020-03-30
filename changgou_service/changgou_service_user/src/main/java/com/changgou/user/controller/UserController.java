@@ -40,6 +40,12 @@ public class UserController {
     }
 
 
+    @GetMapping("/load/{username}")
+    public User findByUsername(@PathVariable("username") String username){
+        User user = userService.findById(username);
+        return user;
+    }
+
     /***
      * 新增数据
      * @param user

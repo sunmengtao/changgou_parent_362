@@ -10,6 +10,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.Base64Utils;
+
+import java.nio.charset.Charset;
 
 /**
  * Spring Security 核心配置文件
@@ -96,7 +99,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
      * @param args
      */
     public static void main(String[] args) {
-        String encode = new BCryptPasswordEncoder().encode("123456");
-        System.out.println(encode);
+//        String encode = new BCryptPasswordEncoder().encode("123456");
+//        System.out.println(encode);
+
+//        RandomValueStringGenerator generator = new RandomValueStringGenerator(16);
+//        System.out.println(generator.generate());
+
+        String str = Base64Utils.encodeToString("jd:123456".getBytes(Charset.defaultCharset()));
+        System.out.println(str);
     }
 }
