@@ -9,10 +9,8 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -34,6 +32,15 @@ public class AuthController {
 
     @Value("${auth.cookieMaxAge}")
     private Integer cookieMaxAge;
+
+    @GetMapping("/toLogin")
+    public String toLogin(@RequestParam(name = "ReturnUrl",required = false,defaultValue = "http://www.changgou.com") String ReturnUrl, Model model){
+        model.addAttribute("ReturnUrl", ReturnUrl);
+        return "login";
+    }
+
+
+
 
     /**
      * 测试登录的接口
@@ -70,5 +77,29 @@ public class AuthController {
     private void saveJtiToCookie(String jti) {
         ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         CookieUtil.addCookie(requestAttributes.getResponse(), cookieDomain, "/", "uid", jti, cookieMaxAge, true);
+    }
+
+    @PostMapping("/login")
+    public String login(@RequestParam("username") String username,@RequestParam("password") String password,@RequestParam(name = "ReturnUrl",required = false,defaultValue = "http://www.changgou.com") String ReturnUrl){
+
+        if(StringUtils.isEmpty(username)){
+            throw new RuntimeException("用户名不能为空");
+        }
+
+        if(StringUtils.isEmpty(password)){
+            throw new RuntimeException("密码不能为空");
+        }
+
+        try {
+            AuthToken authToken = authService.applyToken(clientId, clientSecret, username, password);
+            String jti = authToken.getJti();
+            saveJtiToCookie(jti);
+            //登录成功之后,重定向跳转到某一页面
+            return "redirect:" + ReturnUrl;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "redirect:http://web.changgou.com:8001/api/oauth/toLogin?ReturnUrl="+ReturnUrl;
+        }
+
     }
 }

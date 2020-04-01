@@ -6,6 +6,7 @@ import com.changgou.user.service.AddressService;
 import com.changgou.user.pojo.Address;
 import com.github.pagehelper.Page;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class AddressController {
      * 查询全部数据
      * @return
      */
+    @PreAuthorize("hasAnyAuthority('common')")
     @GetMapping
     public Result findAll(){
         List<Address> addressList = addressService.findAll();

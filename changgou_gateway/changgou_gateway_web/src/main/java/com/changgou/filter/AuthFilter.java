@@ -27,7 +27,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
         //2.获取请求URL,判断是否是登录,如果是则放行
         String path = request.getURI().getPath();
-        if ("/api/oauth/interface/login".equals(path)){
+        if ("/api/oauth/interface/login".equals(path) || "/api/oauth/toLogin".equals(path)||"/api/oauth/login".equals(path)){
             return chain.filter(exchange);
         }
         //3.从请求中获取cookie值,判断cookie里面是否为空,如果为空,那么久返回401
