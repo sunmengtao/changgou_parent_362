@@ -11,6 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class CartServiceImpl implements CartService {
 
@@ -39,6 +43,7 @@ public class CartServiceImpl implements CartService {
             orderItem.setNum(orderItem.getNum() + num);//设置缓存商品的最新数量
             if(orderItem.getNum()<=0){
                 redisTemplate.boundHashOps(Constants.REDIS_CART + username).delete(skuId);
+                return;//注意：此处一定要返回回去
             }
             orderItem.setMoney(orderItem.getPrice() * orderItem.getNum()); //小计价格 = 单价*数量
             orderItem.setPayMoney(orderItem.getMoney());
@@ -86,5 +91,52 @@ public class CartServiceImpl implements CartService {
         orderItem.setName(sku.getName());  //商品名称
 
         return orderItem;
+    }
+
+
+    @Override
+    public Map list(String username) {
+        Map map = new HashMap();
+
+        List<OrderItem> orderItemList = redisTemplate.boundHashOps(Constants.REDIS_CART + username).values();
+        map.put("orderItemList", orderItemList);//购物车里商品条目的集合
+
+        int totalNum = 0; //结算时的总数量
+        int totalPrice = 0; //结算时的总价格
+        
+        if(orderItemList!=null && orderItemList.size()>0){
+            for (OrderItem orderItem : orderItemList) {
+                if(orderItem.isChecked()){ //如果商品已经勾选，那么才计算商品的数量及总价
+                    totalNum += orderItem.getNum();
+                    totalPrice += orderItem.getMoney(); // 注意，这里是总计价格，不是总计单价
+                }
+            }
+        }
+        map.put("totalNum", totalNum);
+        map.put("totalPrice", totalPrice);
+
+        return map;
+    }
+
+
+    @Override
+    public void updateChecked(String username, String skuId, Boolean checked) {
+        OrderItem orderItem = (OrderItem)redisTemplate.boundHashOps(Constants.REDIS_CART + username).get(skuId);
+        if(orderItem==null){
+            throw new RuntimeException("数据不存在！");
+        }
+        orderItem.setChecked(checked);
+        //设置完状态后将商品更新到reis中去
+        redisTemplate.boundHashOps(Constants.REDIS_CART + username).put(skuId, orderItem);
+    }
+
+
+    @Override
+    public void delete(String username, String skuId) {
+        OrderItem orderItem = (OrderItem)redisTemplate.boundHashOps(Constants.REDIS_CART + username).get(skuId);
+        if(orderItem==null){
+            throw new RuntimeException("数据不存在！");
+        }
+        redisTemplate.boundHashOps(Constants.REDIS_CART + username).delete(skuId);
     }
 }
