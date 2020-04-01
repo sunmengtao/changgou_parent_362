@@ -28,7 +28,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
         //2.获取请求URL，判断是否是登录相关URL，如果是则放行
         String path = request.getURI().getPath();
-        if("/api/oauth/interface/login".equals(path)){
+        if("/api/oauth/interface/login".equals(path)||"/api/oauth/toLogin".equals(path)||"/api/oauth/login".equals(path)){
             return chain.filter(exchange);
         }
 
