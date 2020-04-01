@@ -36,9 +36,9 @@ public class SkuController {
      * @return
      */
     @GetMapping("/{id}")
-    public Result findById(@PathVariable String id){
+    public Sku findById(@PathVariable("id") String id){
         Sku sku = skuService.findById(id);
-        return new Result(true,StatusCode.OK,"查询成功",sku);
+        return sku;
     }
 
 

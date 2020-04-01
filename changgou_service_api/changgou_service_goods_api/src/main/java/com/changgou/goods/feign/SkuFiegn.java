@@ -21,4 +21,7 @@ public interface SkuFiegn {
 
     @GetMapping
     public List<Sku> findAll();
+
+    @GetMapping("/{id}")
+    public Sku findById(@PathVariable("id") String id);
 }
