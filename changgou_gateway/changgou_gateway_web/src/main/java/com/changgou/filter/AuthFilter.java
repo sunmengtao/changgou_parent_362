@@ -1,6 +1,7 @@
 package com.changgou.filter;
 
 import com.changgou.service.AuthService;
+import com.changgou.util.UrlFilter;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -26,16 +27,18 @@ public class AuthFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         ServerHttpResponse response = exchange.getResponse();
 
-        //2.获取请求URL，判断是否是登录相关URL，如果是则放行
+        //2.获取请求URL，判断是登录相关URL ，或者请求的URL不是我们要求的必须登录后才能操作的URL，那么就放行
         String path = request.getURI().getPath();
-        if("/api/oauth/interface/login".equals(path)||"/api/oauth/toLogin".equals(path)||"/api/oauth/login".equals(path)){
+        if("/api/oauth/interface/login".equals(path)||"/api/oauth/toLogin".equals(path)||"/api/oauth/login".equals(path) || !UrlFilter.hasAuthorize(path)){
             return chain.filter(exchange);
         }
 
         //3.从请求中获取cookie值，判断cookie里面的uid是否为空，如果为空，那么就返回401
         String jti = authService.getJtiFromCookie(request);
         if(StringUtils.isEmpty(jti)){
-            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            //response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            response.setStatusCode(HttpStatus.SEE_OTHER);
+            response.getHeaders().set("Location", "http://web.changgou.com:8001/api/oauth/toLogin?ReturnUrl="+request.getURI());
             return response.setComplete();
         }
 
@@ -43,7 +46,9 @@ public class AuthFilter implements GlobalFilter, Ordered {
         //4.根据UID从REDIS里查找长令牌token，判断token是否为空，如果为空，那么就返回401
         String token = authService.getTokenFromRedis(jti);
         if(StringUtils.isEmpty(token)){
-            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            //response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            response.setStatusCode(HttpStatus.SEE_OTHER);
+            response.getHeaders().set("Location", "http://web.changgou.com:8001/api/oauth/toLogin?ReturnUrl="+request.getURI());
             return response.setComplete();
         }
 
@@ -51,7 +56,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
         request.mutate().header("Authorization", "bearer "+ token);
 
         //6.执行放行
-
         return chain.filter(exchange);
     }
 

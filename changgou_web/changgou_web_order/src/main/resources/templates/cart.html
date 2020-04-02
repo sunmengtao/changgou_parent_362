@@ -103,13 +103,13 @@
                             </li>
                             <li class="yui3-u-1-8"><span class="price" th:text="${#numbers.formatDecimal(item.price/100.0,1,2)}"></span></li>
                             <li class="yui3-u-1-8">
-                                <a th:href="@{//cart.changgou.com:9111/wcart/add(skuId=${item.skuId},num=-1)}" class="increment mins">-</a>
+                                <a th:href="@{//web.changgou.com:8001/api/wcart/add(skuId=${item.skuId},num=-1)}" class="increment mins">-</a>
                                 <input autocomplete="off" type="text" th:value="${item.num}" minnum="1" class="itxt" />
-                                <a th:href="@{//cart.changgou.com:9111/wcart/add(skuId=${item.skuId},num=1)}" class="increment plus">+</a>
+                                <a th:href="@{//web.changgou.com:8001/api/wcart/add(skuId=${item.skuId},num=1)}" class="increment plus">+</a>
                             </li>
                             <li class="yui3-u-1-8"><span class="sum" th:text="${#numbers.formatDecimal(item.money/100.0,1,2)}"></span></li>
                             <li class="yui3-u-1-8">
-                                <a th:href="@{//cart.changgou.com:9111/wcart/delete(skuId=${item.skuId})}">删除</a><br />
+                                <a th:href="@{//web.changgou.com:8001/api/wcart/delete(skuId=${item.skuId})}">删除</a><br />
                                 <a href="#none">移到收藏</a>
                             </li>
                         </ul>
@@ -135,7 +135,7 @@
                     <span><em>已节省：</em><i th:text="${#numbers.formatDecimal(result.totalPrice/100.0,1,2)}"></i></span>
                 </div>
                 <div class="sumbtn">
-                    <a class="sum-btn" href="//cart.changgou.com:9111/worder/ready" >结算</a>
+                    <a class="sum-btn" href="//web.changgou.com:8001/api/worder/ready" >结算</a>
                 </div>
             </div>
         </div>
@@ -410,7 +410,7 @@
     })
 
     function  updateChecked(id,checked){
-        location.href=`http://cart.changgou.com:9111/wcart/updateChecked?skuId=${id}&checked=${!checked}`
+        location.href=`http://web.changgou.com:8001/api/wcart/updateChecked?skuId=${id}&checked=${!checked}`
     }
 
 

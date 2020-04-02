@@ -18,7 +18,13 @@ public class CartController {
     /**
      * 没有网关时的购物车列表页面的URL
      */
-    private static final String CART_URL = "http://cart.changgou.com:9111/wcart/list";
+    //private static final String CART_URL = "http://cart.changgou.com:9111/wcart/list";
+
+
+    /**
+     * 对接网关时的购物车列表页面的URL
+     */
+    private static final String CART_URL = "http://cart.changgou.com:8001/api/wcart/list";
 
     @GetMapping("/list")
     public String list(Model model){
