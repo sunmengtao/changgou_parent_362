@@ -1,4 +1,5 @@
 package com.changgou.user.controller;
+import com.changgou.config.TokenDecode;
 import com.changgou.entity.PageResult;
 import com.changgou.entity.Result;
 import com.changgou.entity.StatusCode;
@@ -18,6 +19,10 @@ public class AddressController {
 
     @Autowired
     private AddressService addressService;
+
+
+    @Autowired
+    private TokenDecode tokenDecode;
 
     /**
      * 查询全部数据
@@ -106,4 +111,17 @@ public class AddressController {
     }
 
 
+    @PostMapping("/addAdress")
+    public Result addAdress(@RequestBody Address address){
+        String username = tokenDecode.getUserInfo().get("username");
+        address.setUsername(username);
+        addressService.add(address);
+        return new Result(true,StatusCode.OK,"添加成功");
+    }
+
+    @GetMapping("/list")
+    public List<Address> list(){
+        String username = tokenDecode.getUserInfo().get("username");
+        return addressService.list(username);
+    }
 }
