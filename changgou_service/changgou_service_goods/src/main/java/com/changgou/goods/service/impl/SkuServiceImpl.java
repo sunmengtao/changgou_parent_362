@@ -188,5 +188,9 @@ public class SkuServiceImpl implements SkuService {
     }
 
 
+    @Override
+    public boolean decrCount(String skuId, Integer num) {
 
+        return skuMapper.decrCount(skuId,num ) == 0 ? false : true;
+    }
 }

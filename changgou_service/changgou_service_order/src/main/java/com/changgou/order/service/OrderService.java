@@ -64,6 +64,11 @@ public interface OrderService {
     Page<Order> findPage(Map<String, Object> searchMap, int page, int size);
 
 
-
+    /**
+     * 订单结算页提交订单处理
+     * @param order
+     * @return
+     */
+    boolean submit(Order order);
 
 }

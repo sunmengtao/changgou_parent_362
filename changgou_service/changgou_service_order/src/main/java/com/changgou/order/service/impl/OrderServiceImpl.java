@@ -1,14 +1,26 @@
 package com.changgou.order.service.impl;
 
+import com.changgou.entity.Constants;
+import com.changgou.goods.feign.SkuFiegn;
+import com.changgou.order.dao.OrderItemMapper;
 import com.changgou.order.dao.OrderMapper;
-import com.changgou.order.service.OrderService;
 import com.changgou.order.pojo.Order;
+import com.changgou.order.pojo.OrderItem;
+import com.changgou.order.service.CartService;
+import com.changgou.order.service.OrderService;
+import com.changgou.util.IdWorker;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +29,23 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderMapper orderMapper;
+
+    @Autowired
+    private CartService cartService;
+
+    @Autowired
+    private IdWorker idWorker;
+    
+    @Autowired
+    private OrderItemMapper orderItemMapper;
+    
+    @Autowired
+    private SkuFiegn skuFiegn;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
      * 查询全部列表
@@ -203,4 +232,87 @@ public class OrderServiceImpl implements OrderService {
         return example;
     }
 
+
+    @Transactional
+    @Override
+    public boolean submit(Order order) {
+        String username = order.getUsername();
+        //1.从当前用户的购物车获取数据
+        Map cartMap = cartService.list(username);
+
+        //2.业务数据状态前置判断
+        if(cartMap.get("orderItemList")==null || cartMap.get("totalNum") ==null || cartMap.get("totalPrice") == null){
+            logger.error("购物车数据不存在，username:{}", username);
+            return false;
+        }
+
+        List<OrderItem> orderItemList = (List<OrderItem>) cartMap.get("orderItemList");
+        if(orderItemList==null || orderItemList.size()==0){
+            logger.error("购物车数据不存在，username:{}", username);
+            return false;
+        }
+
+        //判断购物车商品选中的情况
+        Integer totalNum = Integer.valueOf(String.valueOf(cartMap.get("totalNum")));
+        Integer totalPrice = Integer.valueOf(String.valueOf(cartMap.get("totalPrice")));
+        if(totalNum==0 || totalPrice==0){
+            logger.error("购物车商品没有被选中，username:{}", username);
+            return false;
+        }
+
+        //3.基于购物车数据创建订单并保存到DB
+        order.setId(String.valueOf(idWorker.nextId())); //设置订单主键
+        order.setTotalNum(totalNum); //选中的总商品数量
+        order.setTotalMoney(totalPrice); //选中总商品价格
+        order.setPayMoney(totalPrice);//支付金额
+        order.setPreMoney(0);//优惠金额0
+        order.setPostFee(0);//邮费0
+        order.setIsDelete("0"); //未删除  [是否删除：0-未删除、1-已删除]
+        order.setOrderStatus("0");//未完成  [订单状态：0-未完成、1-已支付、2-已发货、3-已完成、4-已关闭]
+        order.setPayStatus("0"); //未支付 [支付状态：0-未支付、1-已支付、2-支付失败]
+        order.setConsignStatus("0");//未发货 [发货状态：0-未发货、1-已发货、2-已收货]
+        order.setSourceType("1");//来源于web [请求来源：1-web、2-app、3-微信公众号、4-微信小程序、5-H5手机页面]
+        order.setBuyerRate("0");//未评价  [是否评价：0-未评价、1-已评价]
+        order.setCreateTime(new Date());//订单创建时间
+        order.setUpdateTime(new Date());//订单更新时间
+        int orderInsertResult = orderMapper.insertSelective(order);//保存订单
+        if(orderInsertResult==0){
+            logger.error("订单新增失败，username:{}", username);
+            return false;
+        }
+
+        //4.循环购物车列表数据，内部将选中的购物车商品条目保存到DB
+        List<String> checkedSkuIdList = new ArrayList<>();
+        for (OrderItem orderItem : orderItemList) {
+            if(orderItem.isChecked()){
+                orderItem.setId(String.valueOf(idWorker.nextId()));//设置商品条目主键
+                orderItem.setOrderId(order.getId()); //设置关联的订单表的主键ID
+                orderItem.setIsReturn("0");//未退货 [是否退货：0-未退货、1-已退货]
+                int orderItemInsertResult = orderItemMapper.insertSelective(orderItem);
+                if(orderItemInsertResult==0){
+                    logger.error("商品条目新增失败，username:{}, orderId:{}", username, order.getId());
+                    return false;
+                }
+
+                //5.商品条目对应的sku表数据的销量增加、库存减少。增加和减少的数量来自于商品条目中数量。
+                Boolean decrResult = skuFiegn.decrCount(orderItem.getSkuId(), orderItem.getNum());
+                if(!decrResult){
+                    logger.error("商品的库存及销量更新失败，username:{}, orderId:{}", username, order.getId());
+                    return false;
+                }
+
+                checkedSkuIdList.add(orderItem.getSkuId());
+            }
+        }
+
+        //6.将待支付的订单保存到缓存中，方便跳转到支付时使用
+        redisTemplate.boundValueOps(Constants.REDIS_ORDER_PAY + username).set(order);
+
+        //7.将购物车中选中的商品从缓存中给删除掉
+        for (String skuId : checkedSkuIdList) {
+            redisTemplate.boundHashOps(Constants.REDIS_CART + username).delete(skuId);
+        }
+
+        return true;
+    }
 }

@@ -64,6 +64,12 @@ public interface SkuService {
     Page<Sku> findPage(Map<String, Object> searchMap, int page, int size);
 
 
-
+    /**
+     * 根据商品ID减少库存、增加销量
+     * @param skuId
+     * @param num
+     * @return
+     */
+    boolean decrCount(String skuId, Integer num);
 
 }

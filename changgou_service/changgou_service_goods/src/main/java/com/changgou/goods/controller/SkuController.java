@@ -113,4 +113,9 @@ public class SkuController {
         List<Sku> skuList = skuService.findList(searchMap);
         return skuList;
     }
+
+    @PostMapping("/decrCount")
+    public Boolean decrCount(@RequestParam("skuId") String skuId,@RequestParam("num") Integer num){
+        return skuService.decrCount(skuId, num);
+    }
 }
