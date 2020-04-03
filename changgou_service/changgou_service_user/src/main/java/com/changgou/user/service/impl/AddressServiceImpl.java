@@ -159,4 +159,11 @@ public class AddressServiceImpl implements AddressService {
         return example;
     }
 
+
+    @Override
+    public List<Address> list(String username) {
+        Address cond = new Address();
+        cond.setUsername(username);
+        return addressMapper.select(cond);
+    }
 }
