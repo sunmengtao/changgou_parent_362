@@ -2,6 +2,7 @@ package com.changgou.order.service;
 
 import com.changgou.order.pojo.Order;
 import com.github.pagehelper.Page;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,9 @@ public interface OrderService {
     Page<Order> findPage(Map<String, Object> searchMap, int page, int size);
 
 
-
+    /*
+    * 订单处理结算页面
+    * */
+    Boolean submit(Order order);
 
 }

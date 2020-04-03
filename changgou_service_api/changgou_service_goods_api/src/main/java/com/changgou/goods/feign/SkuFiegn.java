@@ -2,9 +2,7 @@ package com.changgou.goods.feign;
 
 import com.changgou.goods.pojo.Sku;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,4 +22,7 @@ public interface SkuFiegn {
 
     @GetMapping("/{id}")
     public Sku findById(@PathVariable("id") String id);
+
+    @PostMapping("/decrCount")
+    public Boolean decrCount(@RequestParam("skuId") String skuId, @RequestParam("num")Integer num);
 }

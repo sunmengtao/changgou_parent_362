@@ -1,4 +1,5 @@
 package com.changgou.order.controller;
+import com.changgou.config.TokenDecode;
 import com.changgou.entity.PageResult;
 import com.changgou.entity.Result;
 import com.changgou.entity.StatusCode;
@@ -17,6 +18,10 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private TokenDecode tokenDecode;
+
 
     /**
      * 查询全部数据
@@ -101,6 +106,13 @@ public class OrderController {
         Page<Order> pageList = orderService.findPage(searchMap, page, size);
         PageResult pageResult=new PageResult(pageList.getTotal(),pageList.getResult());
         return new Result(true,StatusCode.OK,"查询成功",pageResult);
+    }
+
+    @PostMapping("/submit")
+    public Boolean submit(@RequestBody Order order){
+        String username = tokenDecode.getUserInfo().get("username");
+        order.setUsername(username);
+        return orderService.submit(order);
     }
 
 

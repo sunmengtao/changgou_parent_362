@@ -1,14 +1,26 @@
 package com.changgou.order.service.impl;
 
+import com.changgou.entity.Constants;
+import com.changgou.goods.feign.SkuFiegn;
+import com.changgou.order.dao.OrderItemMapper;
 import com.changgou.order.dao.OrderMapper;
+import com.changgou.order.pojo.OrderItem;
+import com.changgou.order.service.CartService;
 import com.changgou.order.service.OrderService;
 import com.changgou.order.pojo.Order;
+import com.changgou.util.IdWorker;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +29,26 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderMapper orderMapper;
+
+
+    @Autowired
+    private CartService  cartService;
+
+    @Autowired
+    private IdWorker idWorker;
+
+    @Autowired
+    private SkuFiegn skuFiegn;
+
+    @Autowired
+    private OrderItemMapper orderItemMapper;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
 
     /**
      * 查询全部列表
@@ -203,4 +235,86 @@ public class OrderServiceImpl implements OrderService {
         return example;
     }
 
+
+    @Transactional
+    @Override
+    public Boolean submit(Order order) {
+        String username = order.getUsername();
+        //从当前用户的购物车获取数据
+        Map cartMap = cartService.list(username);
+
+
+        //1.业务数据状态前置判断
+        if (cartMap.get("orderItemList")==null || cartMap.get("totalNum")==null || cartMap.get("totalPrice") == null){
+            logger.error("购物车数据不存在,username:{}",username);
+            return false;
+        }
+
+        List<OrderItem> orderItemList = (List<OrderItem>) cartMap.get("orderItemList");
+        if (orderItemList.size()==0 || orderItemList==null){
+            logger.error("购物车数据不存在,username:{}",username);
+            return false;
+        }
+
+        //判断购物车商品选中的情况
+        Integer totalNum = Integer.valueOf(String.valueOf(cartMap.get("totalNum")));
+        Integer totalPrice = Integer.valueOf(String.valueOf(cartMap.get("totalPrice")));
+        if (totalNum==0 || totalPrice==0){
+            logger.error("购物车商品没有被选中,username:{}",username);
+            return false;
+        }
+
+        //3.基于购物车数据创建订单并保存到DB
+        order.setId(String.valueOf(idWorker.nextId()));
+        order.setTotalNum(totalNum);
+        order.setTotalMoney(totalPrice);
+        order.setPayMoney(totalPrice);
+        order.setPreMoney(0);
+        order.setPostFee(0);
+        order.setIsDelete("0");
+        order.setOrderStatus("0");
+        order.setPayStatus("0");
+        order.setConsignStatus("0");
+        order.setSourceType("1");
+        order.setBuyerRate("0");
+        order.setCreateTime(new Date());
+        order.setUpdateTime(new Date());
+        int orderInsertResult = orderMapper.insertSelective(order);
+        if (orderInsertResult==0){
+            logger.error("订单新增失败,username{}",username);
+            return false;
+        }
+
+        //4.基于购物车数据创建订单并保存到DB,内部将购物车商品条目保存到DB
+        List<String> checkedSkuIdList = new ArrayList<>();
+        for (OrderItem orderItem : orderItemList) {
+            if (orderItem.isChecked()){
+                orderItem.setId(String.valueOf(idWorker.nextId()));
+                orderItem.setOrderId(order.getId());
+                orderItem.setIsReturn("0");
+                int orderItemInsertResult = orderItemMapper.insertSelective(orderItem);
+                if (orderItemInsertResult==0){
+                    logger.error("商品条目新增失败, username:{}, orderId:{}", username, order.getId());
+                    return false;
+                }
+                //5.商品条目对应的sku表数据的销量增加.库存减少,增加和减少的数量来自于商品条目中数量
+                Boolean decrResult = skuFiegn.decrCount(orderItem.getSkuId(), orderItem.getNum());
+                if (!decrResult){
+                    logger.error("商品的库存及销量更新失败, username:{}, orderId:{}", username, order.getId());
+                    return false;
+                }
+                checkedSkuIdList.add(orderItem.getSkuId());
+            }
+        }
+
+        //6.将带支付的订单保存到缓存中,方便跳转到支付时使用
+        redisTemplate.boundValueOps(Constants.REDIS_ORDER_PAY + username).set(order);
+
+        //7.将购物车中选中的商品从缓存中给删除掉
+        for (String skuId : checkedSkuIdList) {
+            redisTemplate.boundHashOps(Constants.REDIS_CART + username).delete(skuId);
+        }
+
+        return true;
+    }
 }
