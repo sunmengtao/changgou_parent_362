@@ -72,7 +72,7 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
     public void configure(HttpSecurity http) throws Exception {
         //所有请求必须认证通过
         http.authorizeRequests()
-                .antMatchers("/pay/notify")//微信支付回调路径放行
+                .antMatchers("/pay/notify","/pay/queryOrder")//微信支付回调路径放行
                 .permitAll()
                 .anyRequest().
                 authenticated();    //其他地址需要认证授权

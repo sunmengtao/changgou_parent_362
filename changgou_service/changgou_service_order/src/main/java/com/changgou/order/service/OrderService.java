@@ -71,4 +71,7 @@ public interface OrderService {
      */
     boolean submit(Order order);
 
+
+    void updateOrder(String orderId,String transactionId);
+
 }

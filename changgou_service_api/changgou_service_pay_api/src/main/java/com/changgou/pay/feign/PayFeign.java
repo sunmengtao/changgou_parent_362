@@ -3,6 +3,7 @@ package com.changgou.pay.feign;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 
@@ -12,4 +13,7 @@ public interface PayFeign {
 
     @GetMapping("/nativePay")
     public Map nativePay();
+
+    @GetMapping("/queryOrder")
+    public Map queryOrder(@RequestParam("orderId") String orderId);
 }
