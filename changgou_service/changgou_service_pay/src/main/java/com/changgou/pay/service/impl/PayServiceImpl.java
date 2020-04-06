@@ -58,4 +58,22 @@ public class PayServiceImpl implements PayService {
         }
         return returnMap;
     }
+
+
+    @Override
+    public Map queryOrder(String orderId) {
+        Map<String,String> queryMap = new HashMap<>();
+        Map<String,String> reqData = new HashMap<>();
+        reqData.put("out_trade_no", orderId);
+        try {
+            Map<String, String> respMap = wxPay.orderQuery(reqData);
+            String trade_state = respMap.get("trade_state");//交易状态
+            String time_end = respMap.get("time_end"); //交易完成时间
+            queryMap.put("trade_state", trade_state);
+            queryMap.put("time_end", time_end);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return queryMap;
+    }
 }

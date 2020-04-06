@@ -3,14 +3,19 @@ package com.changgou.order.service.impl;
 import com.changgou.entity.Constants;
 import com.changgou.goods.feign.SkuFiegn;
 import com.changgou.order.dao.OrderItemMapper;
+import com.changgou.order.dao.OrderLogMapper;
 import com.changgou.order.dao.OrderMapper;
 import com.changgou.order.pojo.Order;
 import com.changgou.order.pojo.OrderItem;
+import com.changgou.order.pojo.OrderLog;
 import com.changgou.order.service.CartService;
 import com.changgou.order.service.OrderService;
+import com.changgou.pay.feign.PayFeign;
 import com.changgou.util.IdWorker;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,6 +50,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private PayFeign payFeign;
+
+    @Autowired
+    private OrderLogMapper orderLogMapper;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -314,5 +326,77 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return true;
+    }
+
+
+    @Transactional
+    @Override
+    public void updateOrder(String orderId, String transactionId) {
+        //1.根据商户ID查询微信支付订单，获取微信支付订单的最终交易状态
+        Map<String,String> payMap = payFeign.queryOrder(orderId);
+        if(StringUtils.isEmpty(payMap.get("trade_state"))){
+            logger.error("微信支付订单交易状态不存在！orderId:{}",orderId);
+            return;
+        }
+
+        //2.判断交易状态必须是支付成功或者支付失败中的两种
+        String tradeState = payMap.get("trade_state");
+        String payTime = payMap.get("time_end");
+        if( !("SUCCESS".equals(tradeState)||"PAYERROR".equals(tradeState) ) ){
+            logger.error("微信支付订单交易状态非法！orderId:{}",orderId);
+            return;
+        }
+
+        //3.根据商户ID从表中查询订单数据，判断是否存在
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if(order==null){
+            logger.error("订单不存在！orderId:{}",orderId);
+            return;
+        }
+
+        //4.防重复处理判断，判断订单的状态是否是未支付状态，如果不是，那么就拒绝处理
+        if( !("0".equals(order.getPayStatus()) && "0".equals(order.getOrderStatus()) ) ){
+            logger.error("订单已经更新过，无需重复处理！orderId:{}",orderId);
+            return;
+        }
+
+        //5.根据微信支付的交易状态是支付成功还是支付失败来更新订单表对应的字段
+        Order orderUpdate = new Order();
+        orderUpdate.setId(order.getId());
+        orderUpdate.setUpdateTime(new Date());
+        try {
+            if(StringUtils.isNotEmpty(payTime)){
+                //设置支付时间，此时间要以微信支付的查询结果时间为准
+                orderUpdate.setPayTime(DateUtils.parseDate(payTime, new String[]{"yyyyMMddHHmmss"}));
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        orderUpdate.setOrderStatus("SUCCESS".equals(tradeState) ? "1" : "0"); //如果支付成功，那么订单状态是已支付，如果支付失败则保持未支付状态
+        orderUpdate.setPayStatus("SUCCESS".equals(tradeState) ? "1" : "2"); //如果支付成功，那么支付状态是已支付，如果支付失败则是支付失败状态
+        orderUpdate.setTransactionId(transactionId); //微信支付订单ID
+        int c1 = orderMapper.updateByPrimaryKeySelective(orderUpdate);
+        if(c1==0){
+            logger.error("订单更新状态失败！orderId:{}",orderId);
+            return;
+        }
+
+        //6.保存订单日志记录
+        OrderLog orderLog = new OrderLog();
+        orderLog.setId(String.valueOf(idWorker.nextId()));
+        orderLog.setOrderId(orderId);
+        orderLog.setOrderStatus(orderUpdate.getOrderStatus());
+        orderLog.setPayStatus(orderUpdate.getPayStatus());
+        orderLog.setOperater("system");
+        orderLog.setOperateTime(new Date());
+        orderLog.setRemarks("SUCCESS".equals(tradeState) ?  "订单支付成功" : "订单支付失败");
+        int c2 = orderLogMapper.insertSelective(orderLog);
+        if(c2==0){
+            logger.error("订单日志保存失败！orderId:{}",orderId);
+            return;
+        }
+
+        //7.删除缓存中待支付的订单
+        redisTemplate.delete(Constants.REDIS_ORDER_PAY + order.getUsername());
     }
 }

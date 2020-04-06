@@ -71,4 +71,12 @@ public interface OrderService {
      */
     boolean submit(Order order);
 
+
+    /**
+     * 根据微信支付回调数据更新订单数据
+     * @param orderId  畅购订单ID
+     * @param transactionId 微信支付订单ID
+     */
+    void updateOrder(String orderId,String transactionId);
+
 }
