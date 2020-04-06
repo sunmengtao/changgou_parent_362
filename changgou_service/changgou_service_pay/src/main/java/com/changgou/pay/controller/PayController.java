@@ -74,6 +74,10 @@ public class PayController {
             String payOrderJson = JSON.toJSONString(payOrderMap);
             rabbitTemplate.convertAndSend("", "pay_order", payOrderJson);
 
+
+            //4.将订单ID存入基于stomp机制的MQ交换器中，保证页面能及时通过websocket机制获取此订单ID进行判断然后页面跳转
+            rabbitTemplate.convertAndSend("paynotify", "", outTradeNo);
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {
