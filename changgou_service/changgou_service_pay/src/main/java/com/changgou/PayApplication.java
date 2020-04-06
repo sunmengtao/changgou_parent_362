@@ -1,5 +1,6 @@
 package com.changgou;
 
+import com.changgou.config.TokenDecode;
 import com.github.wxpay.sdk.WXPay;
 import com.github.wxpay.sdk.WeChatPayConfig;
 import org.springframework.boot.SpringApplication;
@@ -25,4 +26,9 @@ public class PayApplication {
         }
     }
 
+
+    @Bean
+    public TokenDecode tokenDecode(){
+        return new TokenDecode();
+    }
 }
