@@ -479,7 +479,7 @@
                     </li>
 					<li th:if="${#strings.startsWith(sm.key,'spec_')}" th:each="sm : ${searchMap}" class="with-x">
                         <span th:text="${#strings.replace(sm.key,'spec_','')}"></span>:<span th:text="${#strings.replace(sm.value,'%2B','+')}"></span>
-                        <a th:href="@{${#strings.replace(url,'&'+sm.key+'='+sm.value,'')}}">×</a>
+                        <a th:href="@{${#strings.replace(url,'&'+sm.key+'='+ #strings.replace(sm.value,'+','%2B'),'')}}">×</a>
                     </li>
 				</ul>
 
