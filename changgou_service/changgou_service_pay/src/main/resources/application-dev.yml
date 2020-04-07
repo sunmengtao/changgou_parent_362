@@ -36,4 +36,4 @@ hystrix:
           thread:
             # 熔断器超时时间，默认：1000/毫秒
             timeoutInMilliseconds: 80000
-notifyUrl : http://weaj4d.natappfree.cc/pay/notify
+notifyUrl : http://raxtnn.natappfree.cc/pay/notify

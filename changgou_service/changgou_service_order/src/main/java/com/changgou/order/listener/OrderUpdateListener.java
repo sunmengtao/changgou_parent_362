@@ -26,7 +26,11 @@ public class OrderUpdateListener {
         String orderId = payOrderMap.get("outTradeNo");
         String transactionId = payOrderMap.get("transactionId");
         logger.info("开始调用微信支付订单的回调数据更新! 参数信息[orderId={}, transactionId={}]",orderId, transactionId);
-        orderService.updateOrder(orderId, transactionId);
+        try {
+            orderService.updateOrder(orderId, transactionId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         logger.info("调用微信支付订单的回调数据更新完毕! 参数信息[orderId={}, transactionId={}]",orderId, transactionId);
     }
 }

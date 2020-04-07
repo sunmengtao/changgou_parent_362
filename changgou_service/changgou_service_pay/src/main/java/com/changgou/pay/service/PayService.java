@@ -7,4 +7,6 @@ public interface PayService {
     Map nativePay(String username);
 
     Map queryOrder(String orderId);
+
+    void closeOrder(String orderId);
 }

@@ -79,4 +79,11 @@ public interface OrderService {
      */
     void updateOrder(String orderId,String transactionId);
 
+
+    /**
+     * 关闭微信支付订单
+     * @param orderId
+     */
+    void closeOrder(String orderId);
+
 }

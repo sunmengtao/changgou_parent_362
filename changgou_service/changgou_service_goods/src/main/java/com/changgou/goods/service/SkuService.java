@@ -72,4 +72,11 @@ public interface SkuService {
      */
     boolean decrCount(String skuId, Integer num);
 
+    /**
+     * 根据商品ID恢复库存、减少销量
+     * @param skuId
+     * @param num
+     * @return
+     */
+    boolean incrCount(String skuId, Integer num);
 }

@@ -118,4 +118,9 @@ public class SkuController {
     public Boolean decrCount(@RequestParam("skuId") String skuId,@RequestParam("num") Integer num){
         return skuService.decrCount(skuId, num);
     }
+
+    @PostMapping("/incrCount")
+    public Boolean incrCount(@RequestParam("skuId") String skuId,@RequestParam("num") Integer num){
+        return skuService.incrCount(skuId, num);
+    }
 }

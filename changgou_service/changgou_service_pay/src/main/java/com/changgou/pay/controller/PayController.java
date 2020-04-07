@@ -2,6 +2,8 @@ package com.changgou.pay.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.changgou.config.TokenDecode;
+import com.changgou.entity.Result;
+import com.changgou.entity.StatusCode;
 import com.changgou.pay.service.PayService;
 import com.github.wxpay.sdk.WXPayUtil;
 import org.apache.commons.io.IOUtils;
@@ -40,6 +42,13 @@ public class PayController {
     @GetMapping("/queryOrder")
     public Map queryOrder(@RequestParam("orderId") String orderId){
         return payService.queryOrder(orderId);
+    }
+
+
+    @GetMapping("/closeOrder")
+    public Result closeOrder(@RequestParam("orderId")String orderId){
+        payService.closeOrder(orderId);
+        return new Result(true, StatusCode.OK, "关闭订单成功");
     }
 
 
