@@ -1,5 +1,6 @@
 package com.changgou.order.service.impl;
 
+import com.changgou.config.RabbitMQConfig;
 import com.changgou.entity.Constants;
 import com.changgou.goods.feign.SkuFiegn;
 import com.changgou.order.dao.OrderItemMapper;
@@ -18,6 +19,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessagePostProcessor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -56,6 +61,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderLogMapper orderLogMapper;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -325,6 +333,15 @@ public class OrderServiceImpl implements OrderService {
             redisTemplate.boundHashOps(Constants.REDIS_CART + username).delete(skuId);
         }
 
+        // 8.添加消息到延迟队列,目的是等消息过期后,MQ的消费者自动处理订单的关闭
+        rabbitTemplate.convertAndSend(RabbitMQConfig.RELAY_QUEUE, (Object) order.getId(), new MessagePostProcessor() {
+            @Override
+            public Message postProcessMessage(Message message) throws AmqpException {
+                message.getMessageProperties().setExpiration("30000");
+                return message;
+            }
+        });
+
         return true;
     }
 
@@ -353,7 +370,11 @@ public class OrderServiceImpl implements OrderService {
             logger.error("订单不存在！orderId:{}",orderId);
             return;
         }
+        updateOrderCommon(orderId, transactionId, tradeState, payTime, order);
 
+    }
+
+    private void updateOrderCommon(String orderId, String transactionId, String tradeState, String payTime, Order order) {
         //4.防重复处理判断，判断订单的状态是否是未支付状态，如果不是，那么就拒绝处理
         if( !("0".equals(order.getPayStatus()) && "0".equals(order.getOrderStatus()) ) ){
             logger.error("订单已经更新过，无需重复处理！orderId:{}",orderId);
@@ -398,5 +419,102 @@ public class OrderServiceImpl implements OrderService {
 
         //7.删除缓存中待支付的订单
         redisTemplate.delete(Constants.REDIS_ORDER_PAY + order.getUsername());
+    }
+
+    @Transactional
+    @Override
+    public void closeOrder(String orderId) {
+        //业务前置判断
+
+        //调用微信支付查询交易状态,判断是否为空
+        Map<String,String> payMap = payFeign.queryOrder(orderId);
+        String tradeState = payMap.get("trade_state");
+        if (StringUtils.isEmpty(tradeState)){
+            logger.error("微信支付交易状态不存在!orderId:{}",orderId);
+            throw new RuntimeException("微信支付交易状态不存在!");
+        }
+
+        //判断交易状态是否合法(支付成功,支付失败,未支付)
+        if ("SUCCESS".equals(tradeState) || "PAYERROR".equals(tradeState) || "NOTPAY".equals(tradeState)){
+            logger.error("微信支付交易状态不合法! ");
+        }
+
+        //根据ID查询数据库判断是否存在,以及判断状态
+
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order==null){
+            logger.error("微信支付交易状态不合法! ");
+            throw new RuntimeException("微信支付交易状态不合法!");
+        }
+
+        //处理几种场景
+        if ("NOTPAY".equals(tradeState)){
+            //订单关闭
+            payFeign.closeOrder(orderId);
+            Map<String, String> respMap = payFeign.queryOrder(orderId);
+            if (!"CLOSED".equals(respMap.get("trade_state"))){
+                logger.error("微信订单关闭失败! orderId:{}",orderId);
+                throw new RuntimeException("微信订单关闭失败!");
+            }
+            //更新表状态
+            Order orderUpdate = new Order();
+            orderUpdate.setId(orderId);
+            orderUpdate.setOrderStatus("4");
+            orderUpdate.setUpdateTime(new Date());
+            orderUpdate.setCloseTime(new Date());
+            int c1 = orderMapper.updateByPrimaryKeySelective(orderUpdate);
+            if (c1==0){
+                logger.error("订单更新失败! orderId:{}",orderId);
+                throw new RuntimeException("订单更新失败!");
+            }
+
+            //库存恢复销量减少
+
+            //根据订单ID查询订单条目列表,循环订单条目列表进行更新
+            OrderItem cond = new OrderItem();
+            cond.setOrderId(orderId);
+            List<OrderItem> orderItemList = orderItemMapper.select(cond);
+            if (orderItemList!=null && orderItemList.size()>0){
+                for (OrderItem orderItem : orderItemList) {
+                    Boolean flag = skuFiegn.incrCount(orderItem.getSkuId(), orderItem.getNum());
+                    if (!flag){
+                        logger.error("订单库存恢复失败! orderId:{}", orderId);
+                        throw new RuntimeException("订单库存恢复失败!");
+                    }
+                }
+            }
+
+            //记录订单日志
+            OrderLog orderLog = new OrderLog();
+            orderLog.setId(String.valueOf(idWorker.nextId()));
+            orderLog.setOrderStatus(orderId);
+            orderLog.setOrderStatus("4");
+            orderLog.setRemarks("订单已关闭");
+            orderLog.setOperater("system");
+            orderLog.setOperateTime(new Date());
+            int c2 = orderLogMapper.insertSelective(orderLog);
+            if (c2==0){
+                logger.error("订单日志插入失败! orderId:{}",orderId);
+                throw new RuntimeException("订单日志插入失败!");
+            }
+            //删除缓存
+            redisTemplate.delete(Constants.REDIS_ORDER_PAY + order.getUsername());
+
+        }else {
+            //支付成功或失败的时候,可以复用微信支付回调时MQ消费者更新订单的部分代码
+            String payTime = payMap.get("time_end");
+            String transactionId = payMap.get("transaction_Id");
+            updateOrderCommon(orderId, transactionId, tradeState, payTime, order);
+        }
+
+        // 关闭订单指定的时的考虑场景
+
+        //场景1: 用户真的没有支付,一直到过期还没有支付,我们就负责处理订单关闭,更新表状态,库存恢复销量减少,记录订单日志,删除缓存
+
+        //场景2: 用户在超时的瞬间程序正要执行到关闭订单接口时,用户支付了,支付完毕后,一种情况支付回调成功了,
+
+        //场景3: 用户在超时的瞬间程序正要执行到关闭订单接口时,用户支付了,支付完毕后,一种情况支付回调没成功.我们就负责更新订单状态.
+
+
     }
 }

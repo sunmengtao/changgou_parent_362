@@ -72,4 +72,6 @@ public interface SkuService {
      */
     boolean decrCount(String skuId, Integer num);
 
+    boolean incrCount(String skuId, Integer num);
+
 }

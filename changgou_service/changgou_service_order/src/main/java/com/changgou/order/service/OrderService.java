@@ -79,4 +79,6 @@ public interface OrderService {
      */
     void updateOrder(String orderId,String transactionId);
 
+    void closeOrder(String orderId);
+
 }

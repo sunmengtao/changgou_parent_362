@@ -69,11 +69,24 @@ public class PayServiceImpl implements PayService {
             Map<String, String> respMap = wxPay.orderQuery(reqData);
             String trade_state = respMap.get("trade_state");//交易状态
             String time_end = respMap.get("time_end"); //交易完成时间
+            String transaction_Id = respMap.get("transaction_Id");
             queryMap.put("trade_state", trade_state);
             queryMap.put("time_end", time_end);
+            queryMap.put("transaction_Id", transaction_Id);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return queryMap;
+    }
+
+    @Override
+    public void closeOrder(String orderId) {
+        Map<String,String> reqData = new HashMap<>();
+        reqData.put("out_trade_no", orderId);
+        try {
+            wxPay.closeOrder(reqData);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

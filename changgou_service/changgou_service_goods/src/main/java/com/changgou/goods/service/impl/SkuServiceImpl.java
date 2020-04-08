@@ -193,4 +193,11 @@ public class SkuServiceImpl implements SkuService {
 
         return skuMapper.decrCount(skuId,num ) == 0 ? false : true;
     }
+
+
+    @Override
+    public boolean incrCount(String skuId, Integer num) {
+
+        return skuMapper.incrCount(skuId, num) ==0 ? false : true;
+    }
 }

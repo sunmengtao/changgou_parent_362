@@ -2,6 +2,8 @@ package com.changgou.pay.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.changgou.config.TokenDecode;
+import com.changgou.entity.Result;
+import com.changgou.entity.StatusCode;
 import com.changgou.pay.service.PayService;
 import com.github.wxpay.sdk.WXPayUtil;
 import org.apache.commons.io.IOUtils;
@@ -42,6 +44,12 @@ public class PayController {
         return payService.queryOrder(orderId);
     }
 
+    @GetMapping("/closeOrder")
+    public Result closeOrder(@RequestParam("orderId") String orderId){
+        payService.closeOrder(orderId);
+        return new Result(true, StatusCode.OK, "关闭订单成功");
+    }
+
 
     /**
      * 微信支付回调的接口
@@ -78,6 +86,8 @@ public class PayController {
             //4.将订单ID存入基于stomp机制的MQ交换器中，保证页面能及时通过websocket机制获取此订单ID进行判断然后页面跳转
             rabbitTemplate.convertAndSend("paynotify", "", outTradeNo);
 
+
+            rabbitTemplate.convertAndSend("paynotify","",outTradeNo);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {

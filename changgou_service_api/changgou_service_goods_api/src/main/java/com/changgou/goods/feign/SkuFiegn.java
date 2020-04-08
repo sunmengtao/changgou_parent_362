@@ -25,4 +25,7 @@ public interface SkuFiegn {
 
     @PostMapping("/decrCount")
     public Boolean decrCount(@RequestParam("skuId") String skuId, @RequestParam("num") Integer num);
+
+    @PostMapping("/incrCount")
+    public Boolean incrCount(@RequestParam("skuId") String skuId,@RequestParam("num") Integer num);
 }
