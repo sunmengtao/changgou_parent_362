@@ -517,4 +517,111 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+
+    @Transactional
+    @Override
+    public void batchSend(List<Order> orderList) {
+        if(orderList==null || orderList.size()==0){
+            throw new RuntimeException("发货订单不能为空");
+        }
+        //对表单元素是否为空判断：订单号不能为空，物流公司不能为空，物流单号不能为空
+        for (Order order : orderList) {
+            if(StringUtils.isEmpty(order.getId())){
+                throw new RuntimeException("订单号不能为空！");
+            }
+
+            if(StringUtils.isEmpty(order.getShippingName())){
+                throw new RuntimeException("物流公司不能为空！");
+            }
+
+            if(StringUtils.isEmpty(order.getShippingCode())){
+                throw new RuntimeException("物流单号不能为空！");
+            }
+        }
+
+        //判断订单号在数据库表是否存在，判断订单的状态是否是已支付未发货的
+        for (Order order : orderList) {
+            Order orderDB = orderMapper.selectByPrimaryKey(order.getId());
+            if(orderDB==null){
+                throw new RuntimeException("订单不存在！");
+            }
+
+            if( !("1".equals(orderDB.getOrderStatus()) && "1".equals(orderDB.getPayStatus()) && "0".equals(orderDB.getConsignStatus()) )){
+                throw new RuntimeException("订单状态异常！");
+            }
+        }
+
+        //执行更新
+        for (Order order : orderList) {
+            order.setUpdateTime(new Date());
+            order.setConsignTime(new Date()); //发货时间
+            order.setConsignStatus("1"); //已发货
+            order.setOrderStatus("2"); //已发货
+            int c1 = orderMapper.updateByPrimaryKeySelective(order);
+            if(c1==0){
+                throw new RuntimeException("订单发货信息保存失败！");
+            }
+
+            OrderLog orderLog = new OrderLog();
+            orderLog.setId(String.valueOf(idWorker.nextId()));
+            orderLog.setOperater("admin");
+            orderLog.setOperateTime(new Date());
+            orderLog.setOrderStatus("2"); //已发货
+            orderLog.setConsignStatus("1");//已发货
+            orderLog.setOrderId(order.getId());
+            orderLog.setRemarks("订单已发货！");
+            int c2 = orderLogMapper.insertSelective(orderLog);
+            if(c2==0){
+                throw new RuntimeException("订单日志保存失败！");
+            }
+
+        }
+
+
+
+
+    }
+
+
+    @Transactional
+    @Override
+    public void take(String operator, String orderId) {
+        //1.查询订单是否存在
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if(order==null){
+            throw new RuntimeException("订单不存在！");
+        }
+
+        //2.判断订单的状态是否合法，已经支付成功的、已发货的
+        if( ! ("1".equals(order.getPayStatus()) && "1".equals(order.getConsignStatus()) && "2".equals(order.getOrderStatus()) ) ){
+            throw new RuntimeException("订单状态非法！");
+        }
+
+        //3.执行更新
+        Order orderUpdate = new Order();
+        orderUpdate.setId(orderId);
+        orderUpdate.setEndTime(new Date());//完成时间
+        orderUpdate.setUpdateTime(new Date());
+        orderUpdate.setConsignStatus("2");//已收货
+        orderUpdate.setOrderStatus("3");//已完成
+        int c1 = orderMapper.updateByPrimaryKeySelective(orderUpdate);
+        if(c1==0){
+            throw new RuntimeException("订单收货信息更新失败！");
+        }
+
+        //4.记录订单日志
+        OrderLog orderLog = new OrderLog();
+        orderLog.setId(String.valueOf(idWorker.nextId()));
+        orderLog.setOrderId(orderId);
+        orderLog.setConsignStatus(orderUpdate.getConsignStatus());
+        orderLog.setOrderStatus(orderUpdate.getOrderStatus());
+        orderLog.setOperateTime(new Date());
+        orderLog.setOperater(operator);//操作人
+        orderLog.setRemarks("订单已收货，完成！");
+        int c2 = orderLogMapper.insertSelective(orderLog);
+        if(c2==0){
+            throw new RuntimeException("订单日志保存失败！");
+        }
+
+    }
 }

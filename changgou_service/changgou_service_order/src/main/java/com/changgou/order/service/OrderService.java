@@ -16,6 +16,7 @@ public interface OrderService {
 
     /**
      * 根据ID查询
+     *
      * @param id
      * @return
      */
@@ -66,6 +67,7 @@ public interface OrderService {
 
     /**
      * 订单结算页提交订单处理
+     *
      * @param order
      * @return
      */
@@ -74,16 +76,34 @@ public interface OrderService {
 
     /**
      * 根据微信支付回调数据更新订单数据
-     * @param orderId  畅购订单ID
+     *
+     * @param orderId       畅购订单ID
      * @param transactionId 微信支付订单ID
      */
-    void updateOrder(String orderId,String transactionId);
+    void updateOrder(String orderId, String transactionId);
 
 
     /**
      * 关闭微信支付订单
+     *
      * @param orderId
      */
     void closeOrder(String orderId);
 
+
+    /**
+     * 批量发货
+     *
+     * @param orderList
+     */
+    void batchSend(List<Order> orderList);
+
+
+    /**
+     * 确认收货
+     *
+     * @param operator 操作人
+     * @param orderId 订单ID
+     */
+    void take(String operator, String orderId);
 }
