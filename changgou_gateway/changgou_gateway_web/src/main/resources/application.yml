@@ -57,7 +57,7 @@ spring:
         - StripPrefix=1
       #秒杀渲染微服务
       - id: changgou_seckill_web_route
-        uri: lb://webseckill-web
+        uri: lb://seckill-web
         predicates:
         - Path=/api/wseckillgoods/**
         filters:

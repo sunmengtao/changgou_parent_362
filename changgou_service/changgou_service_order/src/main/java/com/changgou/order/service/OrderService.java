@@ -91,4 +91,6 @@ public interface OrderService {
 
 
     void take(String operator, String orderId);
+
+    void autoTake();
 }

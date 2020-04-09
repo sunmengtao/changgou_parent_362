@@ -3,10 +3,12 @@ package com.changgou.order.service.impl;
 import com.changgou.config.RabbitMQConfig;
 import com.changgou.entity.Constants;
 import com.changgou.goods.feign.SkuFiegn;
+import com.changgou.order.dao.OrderConfigMapper;
 import com.changgou.order.dao.OrderItemMapper;
 import com.changgou.order.dao.OrderLogMapper;
 import com.changgou.order.dao.OrderMapper;
 import com.changgou.order.pojo.Order;
+import com.changgou.order.pojo.OrderConfig;
 import com.changgou.order.pojo.OrderItem;
 import com.changgou.order.pojo.OrderLog;
 import com.changgou.order.service.CartService;
@@ -17,6 +19,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
+import org.aspectj.weaver.ast.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpException;
@@ -31,6 +34,7 @@ import tk.mybatis.mapper.entity.Example;
 
 import java.sql.Time;
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -62,6 +66,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderLogMapper orderLogMapper;
+
+    @Autowired
+    private OrderConfigMapper orderConfigMapper;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -613,6 +620,40 @@ public class OrderServiceImpl implements OrderService {
         int c2 = orderLogMapper.insertSelective(orderLog);
         if (c2==0){
             throw new RuntimeException("订单日志保存失败!");
+        }
+    }
+
+    @Override
+    public void autoTake() {
+        //1.查询订单配置信息,取出自动收货超时天数
+        OrderConfig orderConfig = orderConfigMapper.selectByPrimaryKey(1);
+        if (orderConfig==null){
+            throw new RuntimeException("订单配置不存在! ");
+        }
+
+        Integer takeTimeout = orderConfig.getTakeTimeout();
+        LocalDate now = LocalDate.now();
+        LocalDate date = now.minusDays(takeTimeout);
+
+        //2.根据条数来决定查找超过这个天数的订单列表,并且这些订单的转台必须是已经支付,且发货成功的
+        Example example = new Example(Order.class);
+        Example.Criteria criteria = example.createCriteria();
+        criteria.andEqualTo("payStatus","1");
+        criteria.andEqualTo("orderStatus","2");
+        criteria.andEqualTo("consignStatus","1");
+        criteria.andLessThan("consignTime",date);
+
+        List<Order> orderList = orderMapper.selectByExample(example);
+
+        //3.循环订单进行执行收货操作
+        if (orderList==null || orderList.size()==0){
+            logger.info("当前没有可执行自动收货的订单.......");
+            return;
+        }
+
+        for (Order order : orderList) {
+            //执行自定收货
+            take("system",order.getId());
         }
     }
 }
