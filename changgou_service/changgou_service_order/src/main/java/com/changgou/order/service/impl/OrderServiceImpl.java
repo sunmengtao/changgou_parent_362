@@ -3,10 +3,12 @@ package com.changgou.order.service.impl;
 import com.changgou.config.RabbitMQConfig;
 import com.changgou.entity.Constants;
 import com.changgou.goods.feign.SkuFiegn;
+import com.changgou.order.dao.OrderConfigMapper;
 import com.changgou.order.dao.OrderItemMapper;
 import com.changgou.order.dao.OrderLogMapper;
 import com.changgou.order.dao.OrderMapper;
 import com.changgou.order.pojo.Order;
+import com.changgou.order.pojo.OrderConfig;
 import com.changgou.order.pojo.OrderItem;
 import com.changgou.order.pojo.OrderLog;
 import com.changgou.order.service.CartService;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -61,6 +64,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderLogMapper orderLogMapper;
+
+    @Autowired
+    private OrderConfigMapper orderConfigMapper;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -623,5 +629,40 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("订单日志保存失败！");
         }
 
+    }
+
+
+    @Override
+    public void autoTake() {
+        //1.查询订单配置信息，取出自动收货超时天数
+        OrderConfig orderConfig = orderConfigMapper.selectByPrimaryKey(1);
+        if(orderConfig==null){
+            throw new RuntimeException("订单配置不存在！");
+        }
+        Integer takeTimeout = orderConfig.getTakeTimeout(); //超时天数
+        LocalDate now = LocalDate.now();
+        LocalDate date = now.minusDays(takeTimeout);
+
+
+        //2.根据条数来决定查找超过这个天数的订单列表，并且这些订单状态必须是已经支付，且发货成功的
+        Example example = new Example(Order.class);
+        Example.Criteria criteria = example.createCriteria();
+        criteria.andEqualTo("payStatus", "1"); //支付成功的
+        criteria.andEqualTo("orderStatus", "2"); //已发货的
+        criteria.andEqualTo("consignStatus", "1"); //已发货的
+        criteria.andLessThan("consignTime", date);//订单发货时间 <  系统当前时间-订单自动收货超时天数
+
+        List<Order> orderlist = orderMapper.selectByExample(example);
+
+        //3.循环订单进行执行收货操作
+        if(orderlist==null || orderlist.size()==0){
+            logger.info("当前没有可执行自动收货的订单。。。。。。");
+            return;
+        }
+
+        for (Order order : orderlist) {
+            //执行自动收货
+            take("system", order.getId());
+        }
     }
 }

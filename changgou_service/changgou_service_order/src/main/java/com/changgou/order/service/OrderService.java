@@ -106,4 +106,10 @@ public interface OrderService {
      * @param orderId 订单ID
      */
     void take(String operator, String orderId);
+
+
+    /**
+     * 自动收货
+     */
+    void autoTake();
 }
