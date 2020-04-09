@@ -115,4 +115,17 @@ public class OrderController {
         return orderService.submit(order);
     }
 
+
+    @PostMapping("/batchSend")
+    public Result batchSend(@RequestBody List<Order> orderList){
+        orderService.batchSend(orderList);
+        return new Result(true,StatusCode.OK,"订单发货成功!");
+    }
+
+    @PostMapping("/take/{operator}/{orderId}")
+    public Result take(@PathVariable("operator")String operator,@PathVariable("orderId") String orderId){
+        orderService.take(operator,orderId);
+        return new Result(true,StatusCode.OK,"订单收货成功!");
+    }
+
 }

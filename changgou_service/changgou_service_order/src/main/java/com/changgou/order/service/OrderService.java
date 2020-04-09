@@ -86,4 +86,9 @@ public interface OrderService {
      */
     void closeOrder(String orderId);
 
+
+    void batchSend(List<Order> orderList);
+
+
+    void take(String operator, String orderId);
 }
