@@ -420,7 +420,7 @@
 				},
 				searchList:function (time) {
 					axios.get('/api/wseckillgoods/list?time='+time).then(function (response) {
-						app.goodslist = response.data.data;
+						app.goodslist = response.data;
 					})
 				}
 			},
