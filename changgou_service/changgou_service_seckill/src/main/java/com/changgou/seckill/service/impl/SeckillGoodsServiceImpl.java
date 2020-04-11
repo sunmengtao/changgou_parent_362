@@ -90,4 +90,17 @@ public class SeckillGoodsServiceImpl implements SeckillGoodsService {
 
         }
     }
+
+    @Override
+    public List<SeckillGoods> list(String time) {
+        List<SeckillGoods> seckillGoodsList = redisTemplate.boundHashOps(Constants.SECKILL_GOODS_KEY + time).values();
+        if (seckillGoodsList!=null && seckillGoodsList.size()>0){
+            for (SeckillGoods seckillGoods : seckillGoodsList) {
+                //返回给页面的秒杀产品的数量,要以缓存结构中的数量为准
+                String stockCount = (String) redisTemplate.opsForValue().get(Constants.SECKILL_GOODS_STOCK_COUNT_KEY + seckillGoods.getId());
+                seckillGoods.setStockCount(Integer.valueOf(stockCount));
+            }
+        }
+        return seckillGoodsList;
+    }
 }
