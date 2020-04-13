@@ -1,5 +1,6 @@
 package com.changgou.seckill;
 
+import com.changgou.interceptor.FeignInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -22,10 +23,10 @@ public class WebSecKillApplication {
         SpringApplication.run(WebSecKillApplication.class, args);
     }
 
-//    @Bean
-//    public FeignInterceptor feignInterceptor(){
-//        return new FeignInterceptor();
-//    }
+    @Bean
+    public FeignInterceptor feignInterceptor(){
+        return new FeignInterceptor();
+    }
 
     /**
      * 设置 redisTemplate 的序列化设置
@@ -47,4 +48,5 @@ public class WebSecKillApplication {
         template.afterPropertiesSet();
         return template;
     }
+
 }
