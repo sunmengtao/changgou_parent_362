@@ -86,6 +86,7 @@ public class SeckillOrderServiceImpl implements SeckillOrderService {
         SeckillOrder seckillOrderDB = new SeckillOrder();
         seckillOrderDB.setId(idWorker.nextId());
         seckillOrderDB.setUserId(username);
+        seckillOrderDB.setSeckillId(id);
         seckillOrderDB.setSellerId(seckillGoods.getSellerId());
         seckillOrderDB.setStatus("0");
         seckillOrderDB.setMoney(seckillGoods.getCostPrice());
